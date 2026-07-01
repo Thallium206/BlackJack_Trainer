@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   BlackjackGame,
   COUNT_SYSTEMS,
+  DEFAULT_SETTINGS,
   createCard,
   makeShoe,
   scoreHand,
@@ -32,6 +33,12 @@ test("makeShoe creates the expected number of cards", () => {
   assert.equal(shoe.length, 312);
   assert.equal(shoe.filter((card) => card.rank === "A").length, 24);
   assert.equal(shoe.filter((card) => card.rank === "10").length, 24);
+});
+
+test("default table starts with a two-deck shoe", () => {
+  assert.equal(DEFAULT_SETTINGS.decks, 2);
+  const game = new BlackjackGame();
+  assert.equal(game.trainingSnapshot().cardsRemaining, 104);
 });
 
 test("scoreLabelFor shows hard and soft totals when an ace can flex", () => {

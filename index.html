@@ -55,7 +55,7 @@
               </div>
               <div class="shoe-readout">
                 <span>Sabot</span>
-                <strong><span id="shoeCardsRemaining">312</span>/<span id="shoeCardsTotal">312</span> cartes</strong>
+                <strong><span id="shoeCardsRemaining">104</span>/<span id="shoeCardsTotal">104</span> cartes</strong>
                 <div class="shoe-meter" aria-hidden="true">
                   <span id="shoeRemainingFill"></span>
                   <i id="shoeDealtFill"></i>
@@ -76,6 +76,11 @@
             <div class="hands-grid" id="playerHands" aria-live="polite"></div>
           </div>
           <div class="round-burst" id="roundBurst" aria-live="polite"></div>
+          <div class="table-result" id="tableResult" aria-live="polite">
+            <span id="tableResultKicker">Pret</span>
+            <strong id="tableResultText">Place ta mise</strong>
+            <small id="tableResultDetail">Le resultat de la manche apparaitra ici.</small>
+          </div>
         </section>
 
         <aside class="control-rail" aria-label="Commandes de jeu">
@@ -120,50 +125,85 @@
           <section class="panel count-panel">
             <div class="panel-heading">
               <h2>Count trainer</h2>
-              <span id="countSystemBadge" class="small-badge tip-target" tabindex="0" data-tooltip="Systeme de comptage actif. Change-le dans Parametres pour comparer Hi-Lo, KO, Hi-Opt I, Omega II ou Zen.">Hi-Lo</span>
-            </div>
-            <div class="count-status tip-target" tabindex="0" data-tooltip="Le count trainer est visible en continu. Compare le count a la composition exacte du sabot pour entrainer ton estimation.">
-              <span>Count live</span>
-              <strong>Visible</strong>
-            </div>
-            <div class="count-reveal" id="countReveal" aria-live="polite">
-              <div class="count-metrics">
-                <div class="tip-target" tabindex="0" data-tooltip="Running count: somme brute des valeurs de comptage des cartes deja vues depuis le dernier melange.">
-                  <span>Running</span>
-                  <strong id="runningCount">0</strong>
-                </div>
-                <div class="tip-target" tabindex="0" data-tooltip="True count: running count divise par le nombre de decks restants. C'est l'indicateur le plus utile pour ajuster les mises.">
-                  <span>True</span>
-                  <strong id="trueCount">0</strong>
-                </div>
-                <div class="tip-target" tabindex="0" data-tooltip="Estimation du nombre de decks encore dans le sabot. Plus ce nombre baisse, plus le true count devient sensible.">
-                  <span>Sabot</span>
-                  <strong id="decksRemaining">0</strong>
-                </div>
-                <div class="tip-target" tabindex="0" data-tooltip="Penetration: part du sabot deja consommee. Le sabot se remelange quand le seuil configure est atteint.">
-                  <span>Pen.</span>
-                  <strong id="penetrationMetric">0%</strong>
-                </div>
+              <div class="panel-heading-actions">
+                <span id="countSystemBadge" class="small-badge tip-target" tabindex="0" data-tooltip="Systeme de comptage actif. Change-le dans Parametres pour comparer Hi-Lo, KO, Hi-Opt I, Omega II ou Zen.">Hi-Lo</span>
+                <button class="toggle-small tip-target" id="toggleCountPanelButton" type="button" aria-expanded="true" aria-controls="countPanelBody" data-tooltip="Affiche ou masque le Count trainer. Masque-le pour jouer sans aide, affiche-le pour apprendre ou verifier ton comptage.">Masquer</button>
               </div>
-              <div class="density-grid">
-                <div class="tip-target" tabindex="0" data-tooltip="Pourcentage de cartes hautes restantes: 10, Valets, Dames, Rois et As. Plus il est haut, plus le sabot favorise le joueur.">
-                  <span>Hautes</span>
-                  <strong id="highDensity">0%</strong>
-                </div>
-                <div class="tip-target" tabindex="0" data-tooltip="Pourcentage de petites cartes restantes: 2 a 6. Beaucoup de petites cartes restantes est moins favorable au joueur.">
-                  <span>Basses</span>
-                  <strong id="lowDensity">0%</strong>
-                </div>
-                <div class="tip-target" tabindex="0" data-tooltip="Cartes sorties du sabot mais pas encore visibles pour le count, typiquement la carte cachee du dealer avant reveal.">
-                  <span>Non vues</span>
-                  <strong id="hiddenRemoved">0</strong>
-                </div>
-                <div class="tip-target" tabindex="0" data-tooltip="Compare le signal du count avec la composition exacte du sabot. Alignee = le count raconte bien ce que le sabot contient.">
-                  <span>Signal</span>
-                  <strong id="countAgreement">Neutre</strong>
-                </div>
+            </div>
+            <div id="countPanelBody">
+              <div class="count-status tip-target" tabindex="0" data-tooltip="Le count trainer est visible en continu quand le panneau est ouvert. Compare le count a la composition exacte du sabot pour entrainer ton estimation.">
+                <span>Count live</span>
+                <strong>Visible</strong>
               </div>
-              <div class="rank-bars" id="rankBars" aria-label="Composition exacte du sabot"></div>
+              <div class="count-reveal" id="countReveal" aria-live="polite">
+                <div class="count-metrics">
+                  <div class="tip-target" tabindex="0" data-tooltip="Running count: somme brute des valeurs de comptage des cartes deja vues depuis le dernier melange.">
+                    <span>Running</span>
+                    <strong id="runningCount">0</strong>
+                  </div>
+                  <div class="tip-target" tabindex="0" data-tooltip="True count: running count divise par le nombre de decks restants. C'est l'indicateur le plus utile pour ajuster les mises.">
+                    <span>True</span>
+                    <strong id="trueCount">0</strong>
+                  </div>
+                  <div class="tip-target" tabindex="0" data-tooltip="Estimation du nombre de decks encore dans le sabot. Plus ce nombre baisse, plus le true count devient sensible.">
+                    <span>Sabot</span>
+                    <strong id="decksRemaining">0</strong>
+                  </div>
+                  <div class="tip-target" tabindex="0" data-tooltip="Penetration: part du sabot deja consommee. Le sabot se remelange quand le seuil configure est atteint.">
+                    <span>Pen.</span>
+                    <strong id="penetrationMetric">0%</strong>
+                  </div>
+                </div>
+                <div class="density-grid">
+                  <div class="tip-target" tabindex="0" data-tooltip="Pourcentage de cartes hautes restantes: 10, Valets, Dames, Rois et As. Plus il est haut, plus le sabot favorise le joueur.">
+                    <span>Hautes</span>
+                    <strong id="highDensity">0%</strong>
+                  </div>
+                  <div class="tip-target" tabindex="0" data-tooltip="Pourcentage de petites cartes restantes: 2 a 6. Beaucoup de petites cartes restantes est moins favorable au joueur.">
+                    <span>Basses</span>
+                    <strong id="lowDensity">0%</strong>
+                  </div>
+                  <div class="tip-target" tabindex="0" data-tooltip="Cartes sorties du sabot mais pas encore visibles pour le count, typiquement la carte cachee du dealer avant reveal.">
+                    <span>Non vues</span>
+                    <strong id="hiddenRemoved">0</strong>
+                  </div>
+                  <div class="tip-target" tabindex="0" data-tooltip="Compare le signal du count avec la composition exacte du sabot. Alignee = le count raconte bien ce que le sabot contient.">
+                    <span>Signal</span>
+                    <strong id="countAgreement">Neutre</strong>
+                  </div>
+                </div>
+                <div class="rank-bars" id="rankBars" aria-label="Composition exacte du sabot"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel learn-panel">
+            <div class="panel-heading">
+              <h2>Apprendre</h2>
+            </div>
+            <div class="learn-tabs" role="tablist" aria-label="Aide blackjack et comptage">
+              <button id="rulesTab" class="learn-tab active" type="button" role="tab" aria-selected="true" aria-controls="rulesPanel" data-tab="rules">Regles</button>
+              <button id="countingTab" class="learn-tab" type="button" role="tab" aria-selected="false" aria-controls="countingPanel" data-tab="counting">Comptage</button>
+            </div>
+            <div class="learn-content">
+              <section id="rulesPanel" class="learn-tab-panel active" role="tabpanel" aria-labelledby="rulesTab">
+                <ul>
+                  <li><strong>Objectif.</strong> Faire plus que le dealer sans depasser 21.</li>
+                  <li><strong>As.</strong> Il vaut 1 ou 11. Une main comme A-6 s'affiche 7 (17 soft).</li>
+                  <li><strong>Blackjack.</strong> As + carte a 10 en deux cartes paie 3:2 ici.</li>
+                  <li><strong>Dealer.</strong> Il tire jusqu'a 17. Le soft 17 est configurable.</li>
+                  <li><strong>Actions.</strong> Tirer ajoute une carte, rester termine ta decision, doubler ajoute une mise et une seule carte, split separe deux cartes de meme valeur.</li>
+                </ul>
+              </section>
+              <section id="countingPanel" class="learn-tab-panel" role="tabpanel" aria-labelledby="countingTab" hidden>
+                <ul>
+                  <li><strong>Principe.</strong> Les petites cartes sorties favorisent le joueur; les hautes cartes restantes augmentent les blackjacks et les doubles gagnants.</li>
+                  <li><strong>Hi-Lo.</strong> 2-6 = +1, 7-9 = 0, 10-A = -1. C'est le meilleur point de depart.</li>
+                  <li><strong>True count.</strong> Running count / decks restants. Compare-le au sabot exact pour calibrer ton intuition.</li>
+                  <li><strong>KO.</strong> Plus simple car non balance, utile pour debuter sans division stricte.</li>
+                  <li><strong>Hi-Opt, Omega, Zen.</strong> Plus fins, plus exigeants; utiles quand les bases sont automatisees.</li>
+                </ul>
+              </section>
             </div>
           </section>
 
@@ -176,9 +216,9 @@
                 Sabots
                 <select class="tip-target" id="deckCountSelect" data-tooltip="Nombre de decks dans le sabot. Les tables casino utilisent souvent 6 ou 8 decks.">
                   <option value="1">1 deck</option>
-                  <option value="2">2 decks</option>
+                  <option value="2" selected>2 decks</option>
                   <option value="4">4 decks</option>
-                  <option value="6" selected>6 decks</option>
+                  <option value="6">6 decks</option>
                   <option value="8">8 decks</option>
                 </select>
               </label>

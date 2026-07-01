@@ -110,7 +110,7 @@ export const COUNT_SYSTEMS = {
 };
 
 export const DEFAULT_SETTINGS = {
-  decks: 6,
+  decks: 2,
   countingSystem: "hiLo",
   blackjackPayout: 1.5,
   dealerHitsSoft17: false,

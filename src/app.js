@@ -15,6 +15,10 @@ const elements = {
   roundMetric: document.querySelector("#roundMetric"),
   phasePill: document.querySelector("#phasePill"),
   roundBurst: document.querySelector("#roundBurst"),
+  tableResult: document.querySelector("#tableResult"),
+  tableResultKicker: document.querySelector("#tableResultKicker"),
+  tableResultText: document.querySelector("#tableResultText"),
+  tableResultDetail: document.querySelector("#tableResultDetail"),
   dealerScore: document.querySelector("#dealerScore"),
   dealerCards: document.querySelector("#dealerCards"),
   shoeStack: document.querySelector("#shoeStack"),
@@ -39,6 +43,8 @@ const elements = {
   insuranceButton: document.querySelector("#insuranceButton"),
   skipInsuranceButton: document.querySelector("#skipInsuranceButton"),
   countSystemBadge: document.querySelector("#countSystemBadge"),
+  toggleCountPanelButton: document.querySelector("#toggleCountPanelButton"),
+  countPanelBody: document.querySelector("#countPanelBody"),
   runningCount: document.querySelector("#runningCount"),
   trueCount: document.querySelector("#trueCount"),
   decksRemaining: document.querySelector("#decksRemaining"),
@@ -58,7 +64,9 @@ const elements = {
   soundToggle: document.querySelector("#soundToggle"),
   newShoeButton: document.querySelector("#newShoeButton"),
   resetSessionButton: document.querySelector("#resetSessionButton"),
-  messageLog: document.querySelector("#messageLog")
+  messageLog: document.querySelector("#messageLog"),
+  learnTabs: [...document.querySelectorAll(".learn-tab")],
+  learnPanels: [...document.querySelectorAll(".learn-tab-panel")]
 };
 
 const suitSymbols = {
@@ -85,6 +93,7 @@ let audioContext = null;
 let tooltipLayer = null;
 let activeTooltipTarget = null;
 let shoeTickTimer = 0;
+let isCountPanelVisible = true;
 
 function money(amount) {
   return `${formatAmount(amount)} credits`;
@@ -458,28 +467,64 @@ function computeRoundNet(state) {
   return state.hands.reduce((total, hand) => total + (hand.payout - hand.bet), 0);
 }
 
+function roundOutcome(state) {
+  const roundNet = computeRoundNet(state);
+  const hasBlackjack = state.hands.some((hand) => hand.result === "Blackjack");
+  const playerWins = state.hands.filter((hand) => ["Blackjack", "Gagne", "Dealer bust"].includes(hand.result)).length;
+  const dealerWins = state.hands.filter((hand) => ["Bust", "Perdu", "Dealer blackjack", "Abandon"].includes(hand.result)).length;
+  const pushes = state.hands.filter((hand) => hand.result.includes("Push")).length;
+  const resultClass = roundNet > 0 ? "win" : roundNet < 0 ? "loss" : "push";
+  const amountLabel = roundNet === 0 ? "0" : `${roundNet > 0 ? "+" : ""}${formatAmount(roundNet)}`;
+
+  let title = "Egalite";
+  let kicker = "Push";
+  if (roundNet > 0) {
+    title = hasBlackjack ? "Blackjack joueur" : "Joueur gagne";
+    kicker = "Victoire";
+  } else if (roundNet < 0) {
+    title = "Dealer gagne";
+    kicker = "Defaite";
+  }
+
+  const details = [];
+  if (playerWins) {
+    details.push(`${playerWins} main${playerWins > 1 ? "s" : ""} gagnee${playerWins > 1 ? "s" : ""}`);
+  }
+  if (dealerWins) {
+    details.push(`${dealerWins} main${dealerWins > 1 ? "s" : ""} perdue${dealerWins > 1 ? "s" : ""}`);
+  }
+  if (pushes) {
+    details.push(`${pushes} push`);
+  }
+
+  return {
+    amountLabel,
+    detail: details.length ? details.join(" / ") : "Mise rendue.",
+    kicker,
+    resultClass,
+    title
+  };
+}
+
 function showRoundBurst(state, previous) {
   if (!previous || state.phase !== "roundOver" || previous.phase === "roundOver") {
     return;
   }
 
-  const roundNet = computeRoundNet(state);
-  const hasBlackjack = state.hands.some((hand) => hand.result === "Blackjack");
-  const resultClass = roundNet > 0 ? "win" : roundNet < 0 ? "loss" : "push";
-  const amountLabel = roundNet === 0 ? "Push" : `${roundNet > 0 ? "+" : ""}${formatAmount(roundNet)}`;
-  const label = hasBlackjack ? `Blackjack ${amountLabel}` : amountLabel;
+  const outcome = roundOutcome(state);
+  const label = `${outcome.title} ${outcome.amountLabel === "0" ? "" : outcome.amountLabel}`.trim();
 
   elements.roundBurst.textContent = label;
-  elements.roundBurst.className = `round-burst show ${resultClass}`;
+  elements.roundBurst.className = `round-burst show ${outcome.resultClass}`;
   elements.app.classList.remove("result-win", "result-loss", "result-push");
-  elements.app.classList.add(`result-${resultClass}`);
+  elements.app.classList.add(`result-${outcome.resultClass}`);
   clearTimeout(burstTimer);
   burstTimer = window.setTimeout(() => {
     elements.roundBurst.className = "round-burst";
     elements.app.classList.remove("result-win", "result-loss", "result-push");
-  }, 1250);
+  }, 1800);
 
-  playSound(resultClass);
+  playSound(outcome.resultClass);
 }
 
 function applyRenderEffects(state, previous) {
@@ -490,6 +535,47 @@ function applyRenderEffects(state, previous) {
   pulseValue(elements.bankrollMetric, state.bankroll - previous.bankroll);
   pulseValue(elements.netMetric, state.stats.net - previous.stats.net);
   showRoundBurst(state, previous);
+}
+
+function renderTableResult(state) {
+  elements.tableResult.classList.remove("show", "win", "loss", "push", "playing");
+
+  if (state.phase === "roundOver" && state.hands.length) {
+    const outcome = roundOutcome(state);
+    elements.tableResultKicker.textContent = outcome.kicker;
+    elements.tableResultText.textContent = outcome.title;
+    elements.tableResultDetail.textContent = `${outcome.amountLabel === "0" ? "Mise rendue" : outcome.amountLabel} / ${outcome.detail}`;
+    elements.tableResult.classList.add("show", outcome.resultClass);
+    return;
+  }
+
+  if (state.phase === "player") {
+    elements.tableResultKicker.textContent = "Decision";
+    elements.tableResultText.textContent = `Main ${state.activeHandIndex + 1}`;
+    elements.tableResultDetail.textContent = "Choisis tirer, rester, doubler, split ou abandon si disponible.";
+    elements.tableResult.classList.add("show", "playing");
+    return;
+  }
+
+  if (state.phase === "dealer") {
+    elements.tableResultKicker.textContent = "Dealer";
+    elements.tableResultText.textContent = "Le dealer joue";
+    elements.tableResultDetail.textContent = "Le resultat arrive apres la main du dealer.";
+    elements.tableResult.classList.add("show", "playing");
+    return;
+  }
+
+  if (state.phase === "insurance") {
+    elements.tableResultKicker.textContent = "Assurance";
+    elements.tableResultText.textContent = "Dealer montre un As";
+    elements.tableResultDetail.textContent = "Prends ou passe l'assurance avant de continuer.";
+    elements.tableResult.classList.add("show", "playing");
+    return;
+  }
+
+  elements.tableResultKicker.textContent = "Pret";
+  elements.tableResultText.textContent = "Place ta mise";
+  elements.tableResultDetail.textContent = "Le resultat de la manche apparaitra ici.";
 }
 
 function setButtonDisabled(button, disabled) {
@@ -522,6 +608,26 @@ function renderControls(state) {
   setButtonDisabled(elements.skipInsuranceButton, state.phase !== "insurance");
 }
 
+function renderCountPanelVisibility() {
+  elements.countPanelBody.hidden = !isCountPanelVisible;
+  elements.toggleCountPanelButton.textContent = isCountPanelVisible ? "Masquer" : "Afficher";
+  elements.toggleCountPanelButton.setAttribute("aria-expanded", String(isCountPanelVisible));
+}
+
+function setLearnTab(tabName) {
+  for (const tab of elements.learnTabs) {
+    const isActive = tab.dataset.tab === tabName;
+    tab.classList.toggle("active", isActive);
+    tab.setAttribute("aria-selected", String(isActive));
+  }
+
+  for (const panel of elements.learnPanels) {
+    const isActive = panel.id === `${tabName}Panel`;
+    panel.classList.toggle("active", isActive);
+    panel.hidden = !isActive;
+  }
+}
+
 function syncSettingsControls(state) {
   if (document.activeElement === elements.betInput || document.activeElement === elements.penetrationInput || document.activeElement === elements.tableMaxInput) {
     return;
@@ -548,10 +654,12 @@ function render() {
 
   renderCards(elements.dealerCards, state.dealer);
   renderHands(state);
+  renderTableResult(state);
   renderTraining(state);
   renderShoeState(state, previousState);
   renderMessages(state.messages);
   renderControls(state);
+  renderCountPanelVisibility();
   syncSettingsControls(state);
   applyRenderEffects(state, previousState);
   previousState = state;
@@ -699,6 +807,19 @@ function bindEvents() {
     }
   });
 
+  elements.toggleCountPanelButton.addEventListener("click", () => {
+    playSound("tap");
+    isCountPanelVisible = !isCountPanelVisible;
+    renderCountPanelVisibility();
+  });
+
+  for (const tab of elements.learnTabs) {
+    tab.addEventListener("click", () => {
+      playSound("tap");
+      setLearnTab(tab.dataset.tab);
+    });
+  }
+
   elements.newShoeButton.addEventListener("click", () => {
     runGameAction("deal", () => game.newShoe());
   });
@@ -716,4 +837,5 @@ function bindEvents() {
 populateCountSystems();
 bindTooltips();
 bindEvents();
+setLearnTab("rules");
 render();
