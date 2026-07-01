@@ -14,6 +14,7 @@ const elements = {
   netMetric: document.querySelector("#netMetric"),
   roundMetric: document.querySelector("#roundMetric"),
   phasePill: document.querySelector("#phasePill"),
+  roundBurst: document.querySelector("#roundBurst"),
   dealerScore: document.querySelector("#dealerScore"),
   dealerCards: document.querySelector("#dealerCards"),
   playerSummary: document.querySelector("#playerSummary"),
@@ -48,6 +49,7 @@ const elements = {
   soft17Toggle: document.querySelector("#soft17Toggle"),
   dasToggle: document.querySelector("#dasToggle"),
   surrenderToggle: document.querySelector("#surrenderToggle"),
+  soundToggle: document.querySelector("#soundToggle"),
   newShoeButton: document.querySelector("#newShoeButton"),
   resetSessionButton: document.querySelector("#resetSessionButton"),
   messageLog: document.querySelector("#messageLog")
@@ -68,6 +70,11 @@ const phaseLabels = {
   dealer: "Dealer",
   roundOver: "Resolue"
 };
+
+const cardVisibility = new Map();
+let previousState = null;
+let burstTimer = 0;
+let audioContext = null;
 
 function money(amount) {
   return `${formatAmount(amount)} credits`;
@@ -93,8 +100,37 @@ function createElement(tag, className, text) {
   return node;
 }
 
-function cardNode(card) {
+function animationClassForCard(card) {
+  const wasHidden = cardVisibility.get(card.id);
+  if (wasHidden === undefined) {
+    return "fresh-card";
+  }
+  if (wasHidden && !card.hidden) {
+    return "flip-card";
+  }
+  return "";
+}
+
+function rememberCardVisibility(state) {
+  cardVisibility.clear();
+  for (const card of state.dealer) {
+    cardVisibility.set(card.id, Boolean(card.hidden));
+  }
+  for (const hand of state.hands) {
+    for (const card of hand.cards) {
+      cardVisibility.set(card.id, false);
+    }
+  }
+}
+
+function cardNode(card, animationIndex = 0) {
   const node = createElement("div", "playing-card");
+  const animationClass = animationClassForCard(card);
+  if (animationClass) {
+    node.classList.add(animationClass);
+    node.style.setProperty("--deal-index", String(animationIndex));
+  }
+
   if (card.hidden) {
     node.classList.add("back");
     node.setAttribute("aria-label", "Carte cachee");
@@ -119,9 +155,22 @@ function renderCards(container, cards) {
     container.append(createElement("div", "empty-state", "En attente"));
     return;
   }
-  for (const card of cards) {
-    container.append(cardNode(card));
+  for (const [index, card] of cards.entries()) {
+    container.append(cardNode(card, index));
   }
+}
+
+function outcomeClass(hand) {
+  if (!hand.result) {
+    return "";
+  }
+  if (hand.result.includes("Push")) {
+    return "hand-push";
+  }
+  if (["Blackjack", "Gagne", "Dealer bust"].includes(hand.result)) {
+    return "hand-win";
+  }
+  return "hand-loss";
 }
 
 function renderHands(state) {
@@ -134,7 +183,11 @@ function renderHands(state) {
 
   const summaries = [];
   for (const [index, hand] of state.hands.entries()) {
-    const handNode = createElement("article", hand.active ? "hand active" : "hand");
+    const handClasses = ["hand", outcomeClass(hand)];
+    if (hand.active) {
+      handClasses.push("active");
+    }
+    const handNode = createElement("article", handClasses.filter(Boolean).join(" "));
     const header = createElement("div", "hand-header");
     const title = createElement("div", "hand-title", `Main ${index + 1}`);
     const status = hand.result ? ` · ${hand.result}` : hand.doubled ? " · Double" : "";
@@ -143,8 +196,8 @@ function renderHands(state) {
     header.append(title, meta);
 
     const row = createElement("div", "card-row");
-    for (const card of hand.cards) {
-      row.append(cardNode(card));
+    for (const [cardIndex, card] of hand.cards.entries()) {
+      row.append(cardNode(card, cardIndex));
     }
     handNode.append(header, row);
     elements.playerHands.append(handNode);
@@ -157,9 +210,10 @@ function renderHands(state) {
 function renderRankBars(training, decks) {
   elements.rankBars.replaceChildren();
   const maxPerRank = decks * 4;
-  for (const rank of RANKS) {
+  for (const [index, rank] of RANKS.entries()) {
     const count = training.remaining.byRank[rank] || 0;
     const node = createElement("div", "rank-bar");
+    node.style.setProperty("--bar-index", String(index));
     const track = createElement("div", "bar-track");
     const fill = createElement("div", "bar-fill");
     fill.style.height = `${Math.max(4, Math.round((count / maxPerRank) * 100))}%`;
@@ -198,6 +252,119 @@ function renderMessages(messages) {
   for (const message of messages.slice(0, 4)) {
     elements.messageLog.append(createElement("span", "log-item", message));
   }
+}
+
+function soundEnabled() {
+  return Boolean(elements.soundToggle?.checked);
+}
+
+function primeAudio() {
+  if (!soundEnabled() || audioContext) {
+    return;
+  }
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) {
+    return;
+  }
+  audioContext = new AudioContextClass();
+}
+
+function playTone(frequency, duration = 0.08, delay = 0, type = "triangle", volume = 0.035) {
+  if (!soundEnabled() || !audioContext) {
+    return;
+  }
+
+  const start = audioContext.currentTime + delay;
+  const oscillator = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+  oscillator.type = type;
+  oscillator.frequency.setValueAtTime(frequency, start);
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(volume, start + 0.012);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+  oscillator.connect(gain).connect(audioContext.destination);
+  oscillator.start(start);
+  oscillator.stop(start + duration + 0.02);
+}
+
+function playSound(kind) {
+  if (!soundEnabled()) {
+    return;
+  }
+  primeAudio();
+  audioContext?.resume?.();
+
+  if (kind === "chip") {
+    playTone(520, 0.055, 0, "square", 0.018);
+    playTone(740, 0.045, 0.045, "square", 0.014);
+  } else if (kind === "deal") {
+    playTone(260, 0.045, 0, "triangle", 0.026);
+    playTone(390, 0.04, 0.04, "triangle", 0.018);
+  } else if (kind === "win") {
+    playTone(523, 0.08, 0, "triangle", 0.03);
+    playTone(659, 0.08, 0.07, "triangle", 0.03);
+    playTone(784, 0.11, 0.14, "triangle", 0.032);
+  } else if (kind === "loss") {
+    playTone(220, 0.11, 0, "sawtooth", 0.024);
+    playTone(165, 0.14, 0.08, "sawtooth", 0.02);
+  } else if (kind === "push") {
+    playTone(440, 0.06, 0, "sine", 0.02);
+    playTone(440, 0.06, 0.08, "sine", 0.018);
+  } else if (kind === "count") {
+    playTone(880, 0.05, 0, "sine", 0.018);
+  } else {
+    playTone(360, 0.045, 0, "triangle", 0.018);
+  }
+}
+
+function pulseValue(element, delta) {
+  if (!element || delta === 0) {
+    return;
+  }
+  element.classList.remove("value-pop", "positive", "negative");
+  void element.offsetWidth;
+  element.classList.add("value-pop", delta > 0 ? "positive" : "negative");
+  window.setTimeout(() => {
+    element.classList.remove("value-pop", "positive", "negative");
+  }, 520);
+}
+
+function computeRoundNet(state) {
+  return state.hands.reduce((total, hand) => total + (hand.payout - hand.bet), 0);
+}
+
+function showRoundBurst(state, previous) {
+  if (!previous || state.phase !== "roundOver" || previous.phase === "roundOver") {
+    return;
+  }
+
+  const roundNet = computeRoundNet(state);
+  const hasBlackjack = state.hands.some((hand) => hand.result === "Blackjack");
+  const resultClass = roundNet > 0 ? "win" : roundNet < 0 ? "loss" : "push";
+  const amountLabel = roundNet === 0 ? "Push" : `${roundNet > 0 ? "+" : ""}${formatAmount(roundNet)}`;
+  const label = hasBlackjack ? `Blackjack ${amountLabel}` : amountLabel;
+
+  elements.roundBurst.textContent = label;
+  elements.roundBurst.className = `round-burst show ${resultClass}`;
+  elements.app.classList.remove("result-win", "result-loss", "result-push");
+  elements.app.classList.add(`result-${resultClass}`);
+  clearTimeout(burstTimer);
+  burstTimer = window.setTimeout(() => {
+    elements.roundBurst.className = "round-burst";
+    elements.app.classList.remove("result-win", "result-loss", "result-push");
+  }, 1250);
+
+  playSound(resultClass);
+}
+
+function applyRenderEffects(state, previous) {
+  if (!previous) {
+    return;
+  }
+
+  pulseValue(elements.bankrollMetric, state.bankroll - previous.bankroll);
+  pulseValue(elements.netMetric, state.stats.net - previous.stats.net);
+  showRoundBurst(state, previous);
 }
 
 function renderControls(state) {
@@ -250,6 +417,9 @@ function render() {
   renderMessages(state.messages);
   renderControls(state);
   syncSettingsControls(state);
+  applyRenderEffects(state, previousState);
+  previousState = state;
+  rememberCardVisibility(state);
 }
 
 function currentBet() {
@@ -295,53 +465,56 @@ function populateCountSystems() {
   }
 }
 
+function runGameAction(sound, action) {
+  playSound(sound);
+  action();
+  render();
+}
+
 function bindEvents() {
   elements.dealButton.addEventListener("click", () => {
-    game.startRound(currentBet());
-    render();
+    runGameAction("deal", () => game.startRound(currentBet()));
   });
 
   elements.repeatBetButton.addEventListener("click", () => {
+    playSound("tap");
     elements.betInput.value = String(clampBet(game.lastBet));
     render();
   });
 
   elements.clearBetButton.addEventListener("click", () => {
+    playSound("tap");
     elements.betInput.value = "0";
     render();
   });
 
   document.querySelectorAll("[data-chip]").forEach((button) => {
-    button.addEventListener("click", () => placeChip(Number(button.dataset.chip)));
+    button.addEventListener("click", () => {
+      playSound("chip");
+      placeChip(Number(button.dataset.chip));
+    });
   });
 
   elements.hitButton.addEventListener("click", () => {
-    game.hit();
-    render();
+    runGameAction("deal", () => game.hit());
   });
   elements.standButton.addEventListener("click", () => {
-    game.stand();
-    render();
+    runGameAction("tap", () => game.stand());
   });
   elements.doubleButton.addEventListener("click", () => {
-    game.doubleDown();
-    render();
+    runGameAction("chip", () => game.doubleDown());
   });
   elements.splitButton.addEventListener("click", () => {
-    game.split();
-    render();
+    runGameAction("chip", () => game.split());
   });
   elements.surrenderButton.addEventListener("click", () => {
-    game.surrender();
-    render();
+    runGameAction("loss", () => game.surrender());
   });
   elements.insuranceButton.addEventListener("click", () => {
-    game.takeInsurance();
-    render();
+    runGameAction("chip", () => game.takeInsurance());
   });
   elements.skipInsuranceButton.addEventListener("click", () => {
-    game.skipInsurance();
-    render();
+    runGameAction("tap", () => game.skipInsurance());
   });
 
   for (const input of [
@@ -353,15 +526,24 @@ function bindEvents() {
     elements.dasToggle,
     elements.surrenderToggle
   ]) {
-    input.addEventListener("change", applySettings);
+    input.addEventListener("change", () => {
+      playSound("tap");
+      applySettings();
+    });
   }
 
+  elements.soundToggle.addEventListener("change", () => {
+    if (elements.soundToggle.checked) {
+      playSound("tap");
+    }
+  });
+
   elements.newShoeButton.addEventListener("click", () => {
-    game.newShoe();
-    render();
+    runGameAction("deal", () => game.newShoe());
   });
 
   elements.resetSessionButton.addEventListener("click", () => {
+    playSound("tap");
     game.resetSession();
     elements.betInput.value = String(game.settings.minimumBet * 5);
     render();
@@ -369,6 +551,7 @@ function bindEvents() {
 
   elements.revealCountButton.addEventListener("pointerdown", (event) => {
     elements.revealCountButton.setPointerCapture?.(event.pointerId);
+    playSound("count");
     setCountReveal(true);
   });
   elements.revealCountButton.addEventListener("pointerup", () => setCountReveal(false));
