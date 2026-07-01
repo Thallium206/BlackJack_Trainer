@@ -196,6 +196,30 @@ export function scoreHand(cards) {
   };
 }
 
+export function hardTotalFor(cards) {
+  return cards.reduce((total, card) => {
+    return total + (card.rank === "A" ? 1 : getCardValue(card.rank));
+  }, 0);
+}
+
+export function scoreLabelFor(cards) {
+  if (!cards.length) {
+    return "0";
+  }
+
+  const score = scoreHand(cards);
+  const hasAce = cards.some((card) => card.rank === "A");
+  const hardTotal = hardTotalFor(cards);
+
+  if (hasAce && score.soft && score.total <= 21 && hardTotal !== score.total) {
+    return `${hardTotal} (${score.total} soft)`;
+  }
+  if (hasAce) {
+    return `${score.total} hard`;
+  }
+  return `${score.total}`;
+}
+
 export function makeShoe(deckCount) {
   const cards = [];
   for (let deck = 0; deck < deckCount; deck += 1) {
@@ -777,6 +801,7 @@ export class BlackjackGame {
       hands: this.hands.map((hand, index) => ({
         ...hand,
         score: scoreHand(hand.cards),
+        scoreLabel: scoreLabelFor(hand.cards),
         active: this.phase === "player" && index === this.activeHandIndex
       })),
       activeHandIndex: this.activeHandIndex,
@@ -790,11 +815,9 @@ export class BlackjackGame {
   dealerScoreLabel() {
     const hidden = this.dealer.some((card, index) => index === 1 && !card.seen && !["dealer", "roundOver"].includes(this.phase));
     if (hidden) {
-      const visible = scoreHand([this.dealer[0]]);
-      return `${visible.total} + ?`;
+      return `${scoreLabelFor([this.dealer[0]])} + ?`;
     }
-    const score = scoreHand(this.dealer);
-    return score.soft && score.total <= 21 ? `${score.total} soft` : `${score.total}`;
+    return scoreLabelFor(this.dealer);
   }
 
   trainingSnapshot() {

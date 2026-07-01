@@ -5,7 +5,8 @@ import {
   COUNT_SYSTEMS,
   createCard,
   makeShoe,
-  scoreHand
+  scoreHand,
+  scoreLabelFor
 } from "../src/game.js";
 
 test("scoreHand handles soft totals, blackjack and busts", () => {
@@ -31,6 +32,12 @@ test("makeShoe creates the expected number of cards", () => {
   assert.equal(shoe.length, 312);
   assert.equal(shoe.filter((card) => card.rank === "A").length, 24);
   assert.equal(shoe.filter((card) => card.rank === "10").length, 24);
+});
+
+test("scoreLabelFor shows hard and soft totals when an ace can flex", () => {
+  assert.equal(scoreLabelFor([createCard("A"), createCard("6")]), "7 (17 soft)");
+  assert.equal(scoreLabelFor([createCard("A"), createCard("9"), createCard("8")]), "18 hard");
+  assert.equal(scoreLabelFor([createCard("10"), createCard("7")]), "17");
 });
 
 test("Hi-Lo values are exposed for low, neutral and high cards", () => {

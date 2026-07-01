@@ -7,7 +7,9 @@ Une app web statique pour jouer au blackjack et s'entrainer au comptage de carte
 - Blackjack complet avec bankroll, mises, blackjack 3:2, double, split, assurance, abandon tardif et push.
 - Sabot multi-decks configurable, penetration avant remelange, dealer stand/hit soft 17.
 - Comptage de cartes avec Hi-Lo, KO, Hi-Opt I, Omega II et Zen Count.
-- Bouton a maintenir pour reveler le running count, true count, cartes restantes, densite des hautes/basses cartes et composition exacte du sabot.
+- Count trainer visible en continu avec running count, true count, cartes restantes, densite des hautes/basses cartes et composition exacte du sabot.
+- Scores avec As affiches en hard et soft quand la main peut encore choisir la valeur de l'As.
+- Bulles d'aide au survol des boutons, regles et indicateurs de comptage.
 - Feedback de jeu avec animations de cartes, burst de resultat, pulsations bankroll/net et sons optionnels.
 - Interface responsive pour bureau et mobile.
 

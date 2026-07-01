@@ -47,7 +47,7 @@ button {
   transition: transform 140ms ease, border-color 140ms ease, background 140ms ease, opacity 140ms ease, box-shadow 140ms ease;
 }
 
-button:hover:not(:disabled) {
+button:hover:not(:disabled):not(.is-disabled) {
   transform: translateY(-1px);
   border-color: rgba(255, 255, 255, 0.28);
   background: #343d43;
@@ -58,8 +58,17 @@ button:disabled {
   opacity: 0.38;
 }
 
-button:active:not(:disabled) {
+button.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.38;
+}
+
+button:active:not(:disabled):not(.is-disabled) {
   transform: translateY(1px) scale(0.99);
+}
+
+button.is-disabled:active {
+  transform: none;
 }
 
 input,
@@ -71,6 +80,34 @@ select {
   background: #111517;
   color: var(--ink);
   padding: 0 12px;
+}
+
+.tip-target {
+  cursor: help;
+}
+
+.tooltip-layer {
+  position: fixed;
+  z-index: 50;
+  width: min(300px, calc(100vw - 24px));
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: var(--radius);
+  background: rgba(15, 18, 19, 0.96);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.4);
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.35;
+  opacity: 0;
+  padding: 10px 12px;
+  pointer-events: none;
+  transform: translateY(4px);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.tooltip-layer.show {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .app-shell {
@@ -589,59 +626,37 @@ h2 {
   gap: 12px;
 }
 
-.hold-button {
-  position: relative;
-  overflow: hidden;
-  border-color: rgba(105, 198, 223, 0.6);
-  background: #1f5364;
-  font-weight: 900;
-}
-
-.hold-button::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.16), transparent);
-  opacity: 0;
-  transform: translateX(-100%);
-}
-
-.hold-button:active,
-.app-shell.count-revealed .hold-button {
-  background: #28738c;
-  transform: translateY(1px);
-}
-
-.app-shell.count-revealed .hold-button::after {
-  animation: scanButton 760ms ease-in-out infinite;
-  opacity: 1;
-}
-
-.count-lock {
-  display: grid;
-  min-height: 180px;
-  place-items: center;
-  border: 1px dashed rgba(255, 255, 255, 0.18);
+.count-status {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid rgba(105, 198, 223, 0.28);
   border-radius: var(--radius);
+  background: rgba(31, 83, 100, 0.35);
+  padding: 9px 11px;
+}
+
+.count-status span {
   color: var(--muted);
+  font-size: 0.74rem;
   font-weight: 800;
+  text-transform: uppercase;
+}
+
+.count-status strong {
+  color: #9eddf0;
+  font-size: 0.84rem;
 }
 
 .count-reveal {
-  display: none;
-  gap: 12px;
-}
-
-.app-shell.count-revealed .count-lock {
-  display: none;
-}
-
-.app-shell.count-revealed .count-reveal {
   display: grid;
+  gap: 12px;
   animation: revealPanel 180ms ease both;
 }
 
-.app-shell.count-revealed .rank-bar {
+.rank-bar {
   animation: barWake 360ms ease both;
   animation-delay: calc(var(--bar-index, 0) * 20ms);
 }

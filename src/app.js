@@ -31,7 +31,6 @@ const elements = {
   insuranceRow: document.querySelector("#insuranceRow"),
   insuranceButton: document.querySelector("#insuranceButton"),
   skipInsuranceButton: document.querySelector("#skipInsuranceButton"),
-  revealCountButton: document.querySelector("#revealCountButton"),
   countSystemBadge: document.querySelector("#countSystemBadge"),
   runningCount: document.querySelector("#runningCount"),
   trueCount: document.querySelector("#trueCount"),
@@ -75,6 +74,8 @@ const cardVisibility = new Map();
 let previousState = null;
 let burstTimer = 0;
 let audioContext = null;
+let tooltipLayer = null;
+let activeTooltipTarget = null;
 
 function money(amount) {
   return `${formatAmount(amount)} credits`;
@@ -98,6 +99,80 @@ function createElement(tag, className, text) {
     node.textContent = text;
   }
   return node;
+}
+
+function ensureTooltipLayer() {
+  if (!tooltipLayer) {
+    tooltipLayer = createElement("div", "tooltip-layer");
+    tooltipLayer.setAttribute("role", "tooltip");
+    document.body.append(tooltipLayer);
+  }
+  return tooltipLayer;
+}
+
+function targetWithTooltip(eventTarget) {
+  return eventTarget instanceof Element ? eventTarget.closest("[data-tooltip]") : null;
+}
+
+function positionTooltip(target) {
+  const layer = ensureTooltipLayer();
+  const targetRect = target.getBoundingClientRect();
+  const layerRect = layer.getBoundingClientRect();
+  const gap = 10;
+  const left = Math.min(
+    window.innerWidth - layerRect.width - 8,
+    Math.max(8, targetRect.left + targetRect.width / 2 - layerRect.width / 2)
+  );
+  const topAbove = targetRect.top - layerRect.height - gap;
+  const top = topAbove > 8 ? topAbove : targetRect.bottom + gap;
+
+  layer.style.left = `${left}px`;
+  layer.style.top = `${Math.min(window.innerHeight - layerRect.height - 8, Math.max(8, top))}px`;
+}
+
+function showTooltip(target) {
+  const text = target.dataset.tooltip;
+  if (!text) {
+    return;
+  }
+  const layer = ensureTooltipLayer();
+  activeTooltipTarget = target;
+  layer.textContent = text;
+  layer.classList.add("show");
+  positionTooltip(target);
+}
+
+function hideTooltip() {
+  activeTooltipTarget = null;
+  tooltipLayer?.classList.remove("show");
+}
+
+function bindTooltips() {
+  document.addEventListener("pointerover", (event) => {
+    const target = targetWithTooltip(event.target);
+    if (target) {
+      showTooltip(target);
+    }
+  });
+
+  document.addEventListener("pointerout", (event) => {
+    const related = event.relatedTarget;
+    if (activeTooltipTarget && related instanceof Node && activeTooltipTarget.contains(related)) {
+      return;
+    }
+    hideTooltip();
+  });
+
+  document.addEventListener("focusin", (event) => {
+    const target = targetWithTooltip(event.target);
+    if (target) {
+      showTooltip(target);
+    }
+  });
+
+  document.addEventListener("focusout", hideTooltip);
+  window.addEventListener("scroll", hideTooltip, true);
+  window.addEventListener("resize", hideTooltip);
 }
 
 function animationClassForCard(card) {
@@ -191,7 +266,7 @@ function renderHands(state) {
     const header = createElement("div", "hand-header");
     const title = createElement("div", "hand-title", `Main ${index + 1}`);
     const status = hand.result ? ` · ${hand.result}` : hand.doubled ? " · Double" : "";
-    const scoreLabel = hand.score.soft && hand.score.total <= 21 ? `${hand.score.total} soft` : `${hand.score.total}`;
+    const scoreLabel = hand.scoreLabel || `${hand.score.total}`;
     const meta = createElement("div", "hand-meta", `${scoreLabel} · ${money(hand.bet)}${status}`);
     header.append(title, meta);
 
@@ -212,8 +287,10 @@ function renderRankBars(training, decks) {
   const maxPerRank = decks * 4;
   for (const [index, rank] of RANKS.entries()) {
     const count = training.remaining.byRank[rank] || 0;
-    const node = createElement("div", "rank-bar");
+    const node = createElement("div", "rank-bar tip-target");
     node.style.setProperty("--bar-index", String(index));
+    node.tabIndex = 0;
+    node.dataset.tooltip = `Il reste ${count} carte${count > 1 ? "s" : ""} de rang ${rank} dans le sabot sur ${maxPerRank} possibles.`;
     const track = createElement("div", "bar-track");
     const fill = createElement("div", "bar-fill");
     fill.style.height = `${Math.max(4, Math.round((count / maxPerRank) * 100))}%`;
@@ -367,24 +444,34 @@ function applyRenderEffects(state, previous) {
   showRoundBurst(state, previous);
 }
 
+function setButtonDisabled(button, disabled) {
+  button.dataset.disabled = disabled ? "true" : "false";
+  button.setAttribute("aria-disabled", String(disabled));
+  button.classList.toggle("is-disabled", disabled);
+}
+
+function isButtonDisabled(button) {
+  return button?.dataset.disabled === "true";
+}
+
 function renderControls(state) {
   const canBet = ["betting", "roundOver"].includes(state.phase);
   const bankrollCanPlay = state.bankroll >= state.settings.minimumBet;
   elements.betInput.disabled = !canBet;
-  elements.dealButton.disabled = !canBet || !bankrollCanPlay;
+  setButtonDisabled(elements.dealButton, !canBet || !bankrollCanPlay);
   elements.dealButton.textContent = state.phase === "roundOver" ? "Rejouer" : "Distribuer";
-  elements.repeatBetButton.disabled = !canBet;
-  elements.clearBetButton.disabled = !canBet;
+  setButtonDisabled(elements.repeatBetButton, !canBet);
+  setButtonDisabled(elements.clearBetButton, !canBet);
 
-  elements.hitButton.disabled = !state.actions.hit;
-  elements.standButton.disabled = !state.actions.stand;
-  elements.doubleButton.disabled = !state.actions.double;
-  elements.splitButton.disabled = !state.actions.split;
-  elements.surrenderButton.disabled = !state.actions.surrender;
+  setButtonDisabled(elements.hitButton, !state.actions.hit);
+  setButtonDisabled(elements.standButton, !state.actions.stand);
+  setButtonDisabled(elements.doubleButton, !state.actions.double);
+  setButtonDisabled(elements.splitButton, !state.actions.split);
+  setButtonDisabled(elements.surrenderButton, !state.actions.surrender);
 
   elements.insuranceRow.hidden = state.phase !== "insurance";
-  elements.insuranceButton.disabled = state.bankroll < state.hands[0]?.bet / 2;
-  elements.skipInsuranceButton.disabled = state.phase !== "insurance";
+  setButtonDisabled(elements.insuranceButton, state.phase !== "insurance" || state.bankroll < state.hands[0]?.bet / 2);
+  setButtonDisabled(elements.skipInsuranceButton, state.phase !== "insurance");
 }
 
 function syncSettingsControls(state) {
@@ -450,11 +537,6 @@ function applySettings() {
   render();
 }
 
-function setCountReveal(active) {
-  elements.app.classList.toggle("count-revealed", active);
-  elements.revealCountButton.setAttribute("aria-pressed", String(active));
-}
-
 function populateCountSystems() {
   for (const system of Object.values(COUNT_SYSTEMS)) {
     const option = document.createElement("option");
@@ -472,17 +554,26 @@ function runGameAction(sound, action) {
 }
 
 function bindEvents() {
-  elements.dealButton.addEventListener("click", () => {
+  elements.dealButton.addEventListener("click", (event) => {
+    if (isButtonDisabled(event.currentTarget)) {
+      return;
+    }
     runGameAction("deal", () => game.startRound(currentBet()));
   });
 
-  elements.repeatBetButton.addEventListener("click", () => {
+  elements.repeatBetButton.addEventListener("click", (event) => {
+    if (isButtonDisabled(event.currentTarget)) {
+      return;
+    }
     playSound("tap");
     elements.betInput.value = String(clampBet(game.lastBet));
     render();
   });
 
-  elements.clearBetButton.addEventListener("click", () => {
+  elements.clearBetButton.addEventListener("click", (event) => {
+    if (isButtonDisabled(event.currentTarget)) {
+      return;
+    }
     playSound("tap");
     elements.betInput.value = "0";
     render();
@@ -495,25 +586,46 @@ function bindEvents() {
     });
   });
 
-  elements.hitButton.addEventListener("click", () => {
+  elements.hitButton.addEventListener("click", (event) => {
+    if (isButtonDisabled(event.currentTarget)) {
+      return;
+    }
     runGameAction("deal", () => game.hit());
   });
-  elements.standButton.addEventListener("click", () => {
+  elements.standButton.addEventListener("click", (event) => {
+    if (isButtonDisabled(event.currentTarget)) {
+      return;
+    }
     runGameAction("tap", () => game.stand());
   });
-  elements.doubleButton.addEventListener("click", () => {
+  elements.doubleButton.addEventListener("click", (event) => {
+    if (isButtonDisabled(event.currentTarget)) {
+      return;
+    }
     runGameAction("chip", () => game.doubleDown());
   });
-  elements.splitButton.addEventListener("click", () => {
+  elements.splitButton.addEventListener("click", (event) => {
+    if (isButtonDisabled(event.currentTarget)) {
+      return;
+    }
     runGameAction("chip", () => game.split());
   });
-  elements.surrenderButton.addEventListener("click", () => {
+  elements.surrenderButton.addEventListener("click", (event) => {
+    if (isButtonDisabled(event.currentTarget)) {
+      return;
+    }
     runGameAction("loss", () => game.surrender());
   });
-  elements.insuranceButton.addEventListener("click", () => {
+  elements.insuranceButton.addEventListener("click", (event) => {
+    if (isButtonDisabled(event.currentTarget)) {
+      return;
+    }
     runGameAction("chip", () => game.takeInsurance());
   });
-  elements.skipInsuranceButton.addEventListener("click", () => {
+  elements.skipInsuranceButton.addEventListener("click", (event) => {
+    if (isButtonDisabled(event.currentTarget)) {
+      return;
+    }
     runGameAction("tap", () => game.skipInsurance());
   });
 
@@ -549,25 +661,10 @@ function bindEvents() {
     render();
   });
 
-  elements.revealCountButton.addEventListener("pointerdown", (event) => {
-    elements.revealCountButton.setPointerCapture?.(event.pointerId);
-    playSound("count");
-    setCountReveal(true);
-  });
-  elements.revealCountButton.addEventListener("pointerup", () => setCountReveal(false));
-  elements.revealCountButton.addEventListener("pointercancel", () => setCountReveal(false));
-  elements.revealCountButton.addEventListener("pointerleave", () => setCountReveal(false));
-  elements.revealCountButton.addEventListener("keydown", (event) => {
-    if (event.key === " " || event.key === "Enter") {
-      setCountReveal(true);
-    }
-  });
-  elements.revealCountButton.addEventListener("keyup", () => setCountReveal(false));
-  window.addEventListener("blur", () => setCountReveal(false));
-
   elements.betInput.addEventListener("input", render);
 }
 
 populateCountSystems();
+bindTooltips();
 bindEvents();
 render();

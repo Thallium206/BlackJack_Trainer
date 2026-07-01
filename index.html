@@ -66,22 +66,22 @@
           <section class="panel bet-panel">
             <div class="panel-heading">
               <h2>Mise</h2>
-              <button class="icon-button" id="repeatBetButton" type="button" title="Rejouer la derniere mise" aria-label="Rejouer la derniere mise">
+              <button class="icon-button tip-target" id="repeatBetButton" type="button" title="Rejouer la derniere mise" aria-label="Rejouer la derniere mise" data-tooltip="Reprend automatiquement le dernier montant mise. Utile pour enchainer les mains sans retaper la mise.">
                 <span aria-hidden="true">↺</span>
               </button>
             </div>
             <label class="field-label" for="betInput">Montant</label>
             <div class="bet-row">
-              <input id="betInput" type="number" min="5" max="500" step="5" value="25">
-              <button class="primary-button" id="dealButton" type="button">Distribuer</button>
+              <input class="tip-target" id="betInput" type="number" min="5" max="500" step="5" value="25" data-tooltip="Ta mise de depart pour la main. Elle est retiree de la bankroll au moment de la distribution.">
+              <button class="primary-button tip-target" id="dealButton" type="button" data-tooltip="Distribue deux cartes au joueur et deux au dealer. Une carte dealer reste cachee jusqu'a la resolution.">Distribuer</button>
             </div>
             <div class="chip-row" aria-label="Jetons rapides">
-              <button class="chip chip-5" type="button" data-chip="5">5</button>
-              <button class="chip chip-25" type="button" data-chip="25">25</button>
-              <button class="chip chip-100" type="button" data-chip="100">100</button>
-              <button class="chip chip-500" type="button" data-chip="500">500</button>
+              <button class="chip chip-5" type="button" data-chip="5" title="Ajoute 5 credits a la mise">5</button>
+              <button class="chip chip-25" type="button" data-chip="25" title="Ajoute 25 credits a la mise">25</button>
+              <button class="chip chip-100" type="button" data-chip="100" title="Ajoute 100 credits a la mise">100</button>
+              <button class="chip chip-500" type="button" data-chip="500" title="Ajoute 500 credits a la mise">500</button>
             </div>
-            <button class="ghost-button" id="clearBetButton" type="button">Effacer</button>
+            <button class="ghost-button tip-target" id="clearBetButton" type="button" data-tooltip="Remet la mise a zero avant la prochaine distribution.">Effacer</button>
           </section>
 
           <section class="panel action-panel">
@@ -89,62 +89,60 @@
               <h2>Actions</h2>
             </div>
             <div class="action-grid">
-              <button id="hitButton" type="button">Tirer</button>
-              <button id="standButton" type="button">Rester</button>
-              <button id="doubleButton" type="button">Doubler</button>
-              <button id="splitButton" type="button">Split</button>
-              <button id="surrenderButton" type="button">Abandon</button>
+              <button class="tip-target" id="hitButton" type="button" data-tooltip="Tirer: ajoute une carte a ta main. Si tu depasses 21, la main bust et la mise est perdue.">Tirer</button>
+              <button class="tip-target" id="standButton" type="button" data-tooltip="Rester: garde ta main telle quelle. Le dealer joue ensuite quand toutes tes mains sont terminees.">Rester</button>
+              <button class="tip-target" id="doubleButton" type="button" data-tooltip="Doubler: double la mise, prend une seule carte supplementaire, puis la main s'arrete. Disponible au debut de la main.">Doubler</button>
+              <button class="tip-target" id="splitButton" type="button" data-tooltip="Split: si tes deux cartes ont meme valeur, cree deux mains separees avec une mise identique sur chaque main.">Split</button>
+              <button class="tip-target" id="surrenderButton" type="button" data-tooltip="Abandon tardif: rend la moitie de la mise et termine la main. Disponible seulement au debut si la regle est active.">Abandon</button>
             </div>
             <div class="insurance-row" id="insuranceRow" hidden>
-              <button id="insuranceButton" type="button">Assurance</button>
-              <button id="skipInsuranceButton" type="button">Passer</button>
+              <button class="tip-target" id="insuranceButton" type="button" data-tooltip="Assurance: pari secondaire egal a la moitie de la mise. Il paie 2:1 si le dealer a blackjack avec son As visible.">Assurance</button>
+              <button class="tip-target" id="skipInsuranceButton" type="button" data-tooltip="Passer l'assurance et continuer la main normalement.">Passer</button>
             </div>
           </section>
 
           <section class="panel count-panel">
             <div class="panel-heading">
               <h2>Count trainer</h2>
-              <span id="countSystemBadge" class="small-badge">Hi-Lo</span>
+              <span id="countSystemBadge" class="small-badge tip-target" tabindex="0" data-tooltip="Systeme de comptage actif. Change-le dans Parametres pour comparer Hi-Lo, KO, Hi-Opt I, Omega II ou Zen.">Hi-Lo</span>
             </div>
-            <button class="hold-button" id="revealCountButton" type="button" aria-pressed="false">
-              Maintenir pour reveler
-            </button>
-            <div class="count-lock">
-              <span>Relache: infos masquees</span>
+            <div class="count-status tip-target" tabindex="0" data-tooltip="Le count trainer est visible en continu. Compare le count a la composition exacte du sabot pour entrainer ton estimation.">
+              <span>Count live</span>
+              <strong>Visible</strong>
             </div>
             <div class="count-reveal" id="countReveal" aria-live="polite">
               <div class="count-metrics">
-                <div>
+                <div class="tip-target" tabindex="0" data-tooltip="Running count: somme brute des valeurs de comptage des cartes deja vues depuis le dernier melange.">
                   <span>Running</span>
                   <strong id="runningCount">0</strong>
                 </div>
-                <div>
+                <div class="tip-target" tabindex="0" data-tooltip="True count: running count divise par le nombre de decks restants. C'est l'indicateur le plus utile pour ajuster les mises.">
                   <span>True</span>
                   <strong id="trueCount">0</strong>
                 </div>
-                <div>
+                <div class="tip-target" tabindex="0" data-tooltip="Estimation du nombre de decks encore dans le sabot. Plus ce nombre baisse, plus le true count devient sensible.">
                   <span>Sabot</span>
                   <strong id="decksRemaining">0</strong>
                 </div>
-                <div>
+                <div class="tip-target" tabindex="0" data-tooltip="Penetration: part du sabot deja consommee. Le sabot se remelange quand le seuil configure est atteint.">
                   <span>Pen.</span>
                   <strong id="penetrationMetric">0%</strong>
                 </div>
               </div>
               <div class="density-grid">
-                <div>
+                <div class="tip-target" tabindex="0" data-tooltip="Pourcentage de cartes hautes restantes: 10, Valets, Dames, Rois et As. Plus il est haut, plus le sabot favorise le joueur.">
                   <span>Hautes</span>
                   <strong id="highDensity">0%</strong>
                 </div>
-                <div>
+                <div class="tip-target" tabindex="0" data-tooltip="Pourcentage de petites cartes restantes: 2 a 6. Beaucoup de petites cartes restantes est moins favorable au joueur.">
                   <span>Basses</span>
                   <strong id="lowDensity">0%</strong>
                 </div>
-                <div>
+                <div class="tip-target" tabindex="0" data-tooltip="Cartes sorties du sabot mais pas encore visibles pour le count, typiquement la carte cachee du dealer avant reveal.">
                   <span>Non vues</span>
                   <strong id="hiddenRemoved">0</strong>
                 </div>
-                <div>
+                <div class="tip-target" tabindex="0" data-tooltip="Compare le signal du count avec la composition exacte du sabot. Alignee = le count raconte bien ce que le sabot contient.">
                   <span>Signal</span>
                   <strong id="countAgreement">Neutre</strong>
                 </div>
@@ -160,7 +158,7 @@
             <div class="settings-grid">
               <label>
                 Sabots
-                <select id="deckCountSelect">
+                <select class="tip-target" id="deckCountSelect" data-tooltip="Nombre de decks dans le sabot. Les tables casino utilisent souvent 6 ou 8 decks.">
                   <option value="1">1 deck</option>
                   <option value="2">2 decks</option>
                   <option value="4">4 decks</option>
@@ -170,26 +168,26 @@
               </label>
               <label>
                 Systeme
-                <select id="countSystemSelect"></select>
+                <select class="tip-target" id="countSystemSelect" data-tooltip="Technique de comptage utilisee pour valoriser les cartes vues. Hi-Lo est le standard pour debuter."></select>
               </label>
               <label>
                 Penetration
-                <input id="penetrationInput" type="number" min="50" max="90" step="5" value="75">
+                <input class="tip-target" id="penetrationInput" type="number" min="50" max="90" step="5" value="75" data-tooltip="Pourcentage du sabot joue avant remelange automatique. 75 signifie qu'environ trois quarts du sabot sont utilises.">
               </label>
               <label>
                 Max table
-                <input id="tableMaxInput" type="number" min="50" max="5000" step="50" value="500">
+                <input class="tip-target" id="tableMaxInput" type="number" min="50" max="5000" step="50" value="500" data-tooltip="Mise maximale autorisee a la table.">
               </label>
             </div>
             <div class="toggle-list">
-              <label><input id="soft17Toggle" type="checkbox"> Dealer tire soft 17</label>
-              <label><input id="dasToggle" type="checkbox" checked> Double apres split</label>
-              <label><input id="surrenderToggle" type="checkbox" checked> Abandon tardif</label>
-              <label><input id="soundToggle" type="checkbox" checked> Sons</label>
+              <label class="tip-target" data-tooltip="Soft 17: main dealer contenant un As compte comme 7 (17 soft). Si actif, le dealer tire encore sur soft 17."><input id="soft17Toggle" type="checkbox"> Dealer tire soft 17</label>
+              <label class="tip-target" data-tooltip="Permet de doubler une main qui vient d'etre creee par un split."><input id="dasToggle" type="checkbox" checked> Double apres split</label>
+              <label class="tip-target" data-tooltip="Permet d'abandonner au debut de la main et de recuperer la moitie de la mise si le dealer n'a pas blackjack."><input id="surrenderToggle" type="checkbox" checked> Abandon tardif</label>
+              <label class="tip-target" data-tooltip="Active ou coupe les petits effets sonores du jeu."><input id="soundToggle" type="checkbox" checked> Sons</label>
             </div>
             <div class="rule-buttons">
-              <button class="ghost-button" id="newShoeButton" type="button">Nouveau sabot</button>
-              <button class="ghost-button" id="resetSessionButton" type="button">Reset session</button>
+              <button class="ghost-button tip-target" id="newShoeButton" type="button" data-tooltip="Melange un nouveau sabot et remet le count a zero sans remettre la bankroll a zero.">Nouveau sabot</button>
+              <button class="ghost-button tip-target" id="resetSessionButton" type="button" data-tooltip="Remet la bankroll, les statistiques, la manche et le sabot a leur etat initial.">Reset session</button>
             </div>
           </section>
         </aside>
