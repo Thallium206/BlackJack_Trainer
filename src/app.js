@@ -4,6 +4,10 @@ import {
   RANKS,
   formatAmount
 } from "./game.js";
+import {
+  mostLikelyNextCard,
+  recommendNextAction
+} from "./advice.js";
 
 const game = new BlackjackGame();
 
@@ -45,6 +49,12 @@ const elements = {
   countSystemBadge: document.querySelector("#countSystemBadge"),
   toggleCountPanelButton: document.querySelector("#toggleCountPanelButton"),
   countPanelBody: document.querySelector("#countPanelBody"),
+  likelyCardValue: document.querySelector("#likelyCardValue"),
+  likelyCardChance: document.querySelector("#likelyCardChance"),
+  likelyCardDetail: document.querySelector("#likelyCardDetail"),
+  recommendedAction: document.querySelector("#recommendedAction"),
+  recommendationMode: document.querySelector("#recommendationMode"),
+  recommendationReason: document.querySelector("#recommendationReason"),
   runningCount: document.querySelector("#runningCount"),
   trueCount: document.querySelector("#trueCount"),
   decksRemaining: document.querySelector("#decksRemaining"),
@@ -325,7 +335,18 @@ function renderRankBars(training, decks) {
 
 function renderTraining(state) {
   const training = state.training;
+  const likelyCard = mostLikelyNextCard(training);
+  const advice = recommendNextAction(state);
+
   elements.countSystemBadge.textContent = training.system.label;
+  elements.likelyCardValue.textContent = likelyCard.label;
+  elements.likelyCardChance.textContent = percent(likelyCard.probability, 1);
+  elements.likelyCardDetail.textContent = likelyCard.remaining
+    ? `${likelyCard.count}/${likelyCard.remaining} cartes restantes (${likelyCard.detail}).`
+    : "Le sabot est vide.";
+  elements.recommendedAction.textContent = advice.actionLabel;
+  elements.recommendationMode.textContent = advice.mode;
+  elements.recommendationReason.textContent = advice.reason;
   elements.runningCount.textContent = signed(training.runningCount, 0);
   elements.trueCount.textContent = signed(training.trueCount, 1);
   elements.decksRemaining.textContent = training.decksRemaining.toFixed(1);

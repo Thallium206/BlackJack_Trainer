@@ -888,6 +888,60 @@ h2 {
   font-size: 0.84rem;
 }
 
+.trainer-guidance {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.trainer-card {
+  display: grid;
+  min-height: 148px;
+  align-content: start;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #111517;
+  padding: 11px;
+}
+
+.trainer-card span,
+.trainer-card small {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.trainer-card strong {
+  color: var(--ink);
+  font-size: 1.18rem;
+  line-height: 1.05;
+}
+
+.trainer-card p {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.34;
+}
+
+.likely-card {
+  border-color: rgba(105, 198, 223, 0.32);
+}
+
+.likely-card strong {
+  color: #9eddf0;
+}
+
+.advice-card {
+  border-color: rgba(243, 201, 105, 0.34);
+}
+
+.advice-card strong {
+  color: var(--gold);
+}
+
 .count-reveal {
   display: grid;
   gap: 12px;
@@ -1354,6 +1408,7 @@ h2 {
   }
 
   .count-metrics,
+  .trainer-guidance,
   .density-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1386,5 +1441,9 @@ h2 {
 
   .shoe-visual {
     min-height: 76px;
+  }
+
+  .trainer-guidance {
+    grid-template-columns: 1fr;
   }
 }

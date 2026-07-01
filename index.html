@@ -135,6 +135,20 @@
                 <span>Count live</span>
                 <strong>Visible</strong>
               </div>
+              <div class="trainer-guidance">
+                <article class="trainer-card likely-card tip-target" tabindex="0" data-tooltip="Prediction basee sur la composition exacte du sabot restant. La valeur 10 regroupe 10, Valet, Dame et Roi car elles valent toutes 10 au blackjack.">
+                  <span>Carte la plus probable</span>
+                  <strong id="likelyCardValue">Valeur 10</strong>
+                  <small id="likelyCardChance">0%</small>
+                  <p id="likelyCardDetail">En attente du sabot.</p>
+                </article>
+                <article class="trainer-card advice-card tip-target" tabindex="0" data-tooltip="Conseil pedagogique base sur la strategie de base, les actions disponibles et quelques deviations simples liees au true count.">
+                  <span>Prochaine action conseillee</span>
+                  <strong id="recommendedAction">Miser / distribuer</strong>
+                  <small id="recommendationMode">Preparation</small>
+                  <p id="recommendationReason">Choisis une mise pour commencer la main.</p>
+                </article>
+              </div>
               <div class="count-reveal" id="countReveal" aria-live="polite">
                 <div class="count-metrics">
                   <div class="tip-target" tabindex="0" data-tooltip="Running count: somme brute des valeurs de comptage des cartes deja vues depuis le dernier melange.">
