@@ -47,6 +47,22 @@
               </div>
               <span class="phase-pill" id="phasePill">Mise</span>
             </div>
+            <div class="shoe-station tip-target" tabindex="0" data-tooltip="Etat exact du sabot. La pile represente les cartes encore disponibles; la jauge indique la penetration avant remelange.">
+              <div class="shoe-visual" aria-hidden="true">
+                <div class="shoe-mouth"></div>
+                <div class="shoe-stack" id="shoeStack"></div>
+                <div class="shoe-cut-card" id="shoeCutCard"></div>
+              </div>
+              <div class="shoe-readout">
+                <span>Sabot</span>
+                <strong><span id="shoeCardsRemaining">312</span>/<span id="shoeCardsTotal">312</span> cartes</strong>
+                <div class="shoe-meter" aria-hidden="true">
+                  <span id="shoeRemainingFill"></span>
+                  <i id="shoeDealtFill"></i>
+                </div>
+                <small id="shoePenetrationLabel">0% joue</small>
+              </div>
+            </div>
             <div class="card-row dealer-cards" id="dealerCards" aria-live="polite"></div>
           </div>
 

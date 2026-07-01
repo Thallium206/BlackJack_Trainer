@@ -17,6 +17,13 @@ const elements = {
   roundBurst: document.querySelector("#roundBurst"),
   dealerScore: document.querySelector("#dealerScore"),
   dealerCards: document.querySelector("#dealerCards"),
+  shoeStack: document.querySelector("#shoeStack"),
+  shoeCardsRemaining: document.querySelector("#shoeCardsRemaining"),
+  shoeCardsTotal: document.querySelector("#shoeCardsTotal"),
+  shoeRemainingFill: document.querySelector("#shoeRemainingFill"),
+  shoeDealtFill: document.querySelector("#shoeDealtFill"),
+  shoeCutCard: document.querySelector("#shoeCutCard"),
+  shoePenetrationLabel: document.querySelector("#shoePenetrationLabel"),
   playerSummary: document.querySelector("#playerSummary"),
   playerHands: document.querySelector("#playerHands"),
   betInput: document.querySelector("#betInput"),
@@ -71,11 +78,13 @@ const phaseLabels = {
 };
 
 const cardVisibility = new Map();
+const SHOE_SLICE_COUNT = 18;
 let previousState = null;
 let burstTimer = 0;
 let audioContext = null;
 let tooltipLayer = null;
 let activeTooltipTarget = null;
+let shoeTickTimer = 0;
 
 function money(amount) {
   return `${formatAmount(amount)} credits`;
@@ -319,6 +328,45 @@ function renderTraining(state) {
   renderRankBars(training, state.settings.decks);
 }
 
+function renderShoeState(state, previous) {
+  const totalCards = state.settings.decks * 52;
+  const remaining = state.training.cardsRemaining;
+  const remainingRatio = totalCards ? remaining / totalCards : 0;
+  const penetration = totalCards ? 1 - remainingRatio : 0;
+  const cutPosition = Math.min(0.98, Math.max(0.02, state.settings.penetration));
+  const visibleSlices = Math.max(1, Math.ceil(remainingRatio * SHOE_SLICE_COUNT));
+
+  elements.shoeCardsRemaining.textContent = String(remaining);
+  elements.shoeCardsTotal.textContent = String(totalCards);
+  elements.shoePenetrationLabel.textContent = `${percent(penetration)} joue`;
+  elements.shoeRemainingFill.style.width = `${Math.max(0, remainingRatio * 100)}%`;
+  elements.shoeDealtFill.style.width = `${Math.min(100, penetration * 100)}%`;
+  elements.shoeCutCard.style.left = `${cutPosition * 100}%`;
+
+  elements.shoeStack.replaceChildren();
+  for (let index = 0; index < SHOE_SLICE_COUNT; index += 1) {
+    const slice = createElement("span", "shoe-card-slice");
+    const reverseIndex = SHOE_SLICE_COUNT - index - 1;
+    slice.style.setProperty("--slice-index", String(index));
+    slice.style.setProperty("--slice-lift", `${reverseIndex * 1.35}px`);
+    if (index >= visibleSlices) {
+      slice.classList.add("depleted");
+    }
+    elements.shoeStack.append(slice);
+  }
+
+  const station = elements.shoeStack.closest(".shoe-station");
+  station.classList.toggle("near-cut", penetration >= state.settings.penetration * 0.85);
+  station.classList.toggle("shuffle-soon", penetration >= state.settings.penetration * 0.97);
+  if (previous && previous.training.cardsRemaining !== remaining) {
+    station.classList.remove("shoe-tick");
+    void station.offsetWidth;
+    station.classList.add("shoe-tick");
+    clearTimeout(shoeTickTimer);
+    shoeTickTimer = window.setTimeout(() => station.classList.remove("shoe-tick"), 520);
+  }
+}
+
 function renderMessages(messages) {
   elements.messageLog.replaceChildren();
   if (!messages.length) {
@@ -501,6 +549,7 @@ function render() {
   renderCards(elements.dealerCards, state.dealer);
   renderHands(state);
   renderTraining(state);
+  renderShoeState(state, previousState);
   renderMessages(state.messages);
   renderControls(state);
   syncSettingsControls(state);
