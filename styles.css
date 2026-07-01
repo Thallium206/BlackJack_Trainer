@@ -89,7 +89,7 @@ select {
 .tooltip-layer {
   position: fixed;
   z-index: 50;
-  width: min(300px, calc(100vw - 24px));
+  width: min(380px, calc(100vw - 24px));
   border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: var(--radius);
   background: rgba(15, 18, 19, 0.96);
@@ -103,6 +103,7 @@ select {
   pointer-events: none;
   transform: translateY(4px);
   transition: opacity 120ms ease, transform 120ms ease;
+  white-space: pre-line;
 }
 
 .tooltip-layer.show {

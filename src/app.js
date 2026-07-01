@@ -52,6 +52,7 @@ const elements = {
   likelyCardValue: document.querySelector("#likelyCardValue"),
   likelyCardChance: document.querySelector("#likelyCardChance"),
   likelyCardDetail: document.querySelector("#likelyCardDetail"),
+  adviceCard: document.querySelector(".advice-card"),
   recommendedAction: document.querySelector("#recommendedAction"),
   recommendationMode: document.querySelector("#recommendationMode"),
   recommendationReason: document.querySelector("#recommendationReason"),
@@ -333,6 +334,66 @@ function renderRankBars(training, decks) {
   }
 }
 
+function visibleDealerCard(state) {
+  return state.dealer.find((card) => !card.hidden) || null;
+}
+
+function cardName(card) {
+  if (!card) {
+    return "inconnue";
+  }
+  return `${card.rank}${suitSymbols[card.suit] || ""}`;
+}
+
+function actionList(actions) {
+  const labels = [
+    ["hit", "Tirer"],
+    ["stand", "Rester"],
+    ["double", "Doubler"],
+    ["split", "Split"],
+    ["surrender", "Abandon"]
+  ];
+  const available = labels
+    .filter(([key]) => actions[key])
+    .map(([, label]) => label);
+  return available.length ? available.join(", ") : "aucune action manuelle";
+}
+
+function recommendationTooltip(state, advice, likelyCard) {
+  const activeHand = state.hands[state.activeHandIndex];
+  const dealerCard = visibleDealerCard(state);
+  const trueCount = signed(state.training.trueCount, 1);
+  const likely = `${likelyCard.label} (${percent(likelyCard.probability, 1)})`;
+  const phaseText = phaseLabels[state.phase] || state.phase;
+
+  if (!activeHand) {
+    return [
+      `Situation actuelle: ${phaseText}, aucune main active.`,
+      `Carte la plus probable: ${likely}.`,
+      `Conseil: ${advice.actionLabel}.`,
+      `Pourquoi: ${advice.reason}`
+    ].join("\n");
+  }
+
+  if (state.phase !== "player" && state.phase !== "insurance") {
+    return [
+      `Situation actuelle: ${phaseText}. Derniere main joueur: ${activeHand.scoreLabel}; dealer montre ${cardName(dealerCard)}.`,
+      `Count: running ${signed(state.training.runningCount, 0)}, true ${trueCount}; carte la plus probable: ${likely}.`,
+      "Actions disponibles: aucune decision joueur active.",
+      `Conseil: ${advice.actionLabel} (${advice.mode}).`,
+      `Pourquoi: ${advice.reason}`
+    ].join("\n");
+  }
+
+  return [
+    `Situation actuelle: joueur ${activeHand.scoreLabel}, dealer montre ${cardName(dealerCard)}.`,
+    `Count: running ${signed(state.training.runningCount, 0)}, true ${trueCount}; carte la plus probable: ${likely}.`,
+    `Actions disponibles: ${actionList(state.actions)}.`,
+    `Conseil: ${advice.actionLabel} (${advice.mode}).`,
+    `Pourquoi: ${advice.reason}`
+  ].join("\n");
+}
+
 function renderTraining(state) {
   const training = state.training;
   const likelyCard = mostLikelyNextCard(training);
@@ -347,6 +408,7 @@ function renderTraining(state) {
   elements.recommendedAction.textContent = advice.actionLabel;
   elements.recommendationMode.textContent = advice.mode;
   elements.recommendationReason.textContent = advice.reason;
+  elements.adviceCard.dataset.tooltip = recommendationTooltip(state, advice, likelyCard);
   elements.runningCount.textContent = signed(training.runningCount, 0);
   elements.trueCount.textContent = signed(training.trueCount, 1);
   elements.decksRemaining.textContent = training.decksRemaining.toFixed(1);
