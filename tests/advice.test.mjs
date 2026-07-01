@@ -75,3 +75,13 @@ test("recommendNextAction applies a simple count deviation", () => {
   assert.equal(advice.actionKey, "stand");
   assert.equal(advice.mode, "Count deviation");
 });
+
+test("recommendNextAction does not suggest manual play on 21", () => {
+  const advice = recommendNextAction(stateFor({
+    cards: [createCard("10"), createCard("5"), createCard("6")],
+    dealerRank: "10"
+  }));
+
+  assert.equal(advice.actionKey, "wait");
+  assert.match(advice.reason, /21 atteint/);
+});

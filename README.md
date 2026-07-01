@@ -11,6 +11,7 @@ Une app web statique pour jouer au blackjack et s'entrainer au comptage de carte
 - Prediction de la valeur de carte la plus probable a sortir et recommandation de prochaine action.
 - Indicateur de sabot sur la table avec pile animee, nombre exact de cartes restantes et penetration avant remelange.
 - Scores avec As affiches en hard et soft quand la main peut encore choisir la valeur de l'As.
+- Une main qui atteint 21 se termine automatiquement; le blackjack naturel reste reserve a As + 10 en deux cartes.
 - Onglet d'apprentissage expliquant les regles du blackjack et les techniques de comptage.
 - Bulles d'aide au survol des boutons, regles et indicateurs de comptage.
 - Feedback de jeu avec animations de cartes, burst de resultat, pulsations bankroll/net et sons optionnels.

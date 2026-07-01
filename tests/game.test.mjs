@@ -47,6 +47,61 @@ test("scoreLabelFor shows hard and soft totals when an ace can flex", () => {
   assert.equal(scoreLabelFor([createCard("10"), createCard("7")]), "17");
 });
 
+test("hitting to 21 automatically locks and resolves the hand", () => {
+  const game = new BlackjackGame({ decks: 1 });
+  game.phase = "player";
+  game.bankroll = 90;
+  game.hands = [{
+    bet: 10,
+    cards: [createCard("10"), createCard("5")],
+    doubled: false,
+    id: "hand-1",
+    locked: false,
+    payout: 0,
+    result: "",
+    settled: false,
+    source: "initial",
+    splitAces: false,
+    surrendered: false
+  }];
+  game.activeHandIndex = 0;
+  game.dealer = [createCard("10"), createCard("7")];
+  game.shoe = [createCard("6")];
+
+  game.hit();
+
+  assert.equal(game.phase, "roundOver");
+  assert.equal(game.hands[0].result, "21 gagne");
+  assert.equal(game.hands[0].locked, true);
+  assert.equal(game.availableActions().hit, false);
+  assert.equal(game.availableActions().stand, false);
+  assert.ok(game.messages.some((message) => message.includes("21 !")));
+});
+
+test("a player hand already on 21 exposes no manual actions", () => {
+  const game = new BlackjackGame({ decks: 1 });
+  game.phase = "player";
+  game.hands = [{
+    bet: 10,
+    cards: [createCard("10"), createCard("5"), createCard("6")],
+    doubled: false,
+    id: "hand-1",
+    locked: false,
+    payout: 0,
+    result: "",
+    settled: false,
+    source: "initial",
+    splitAces: false,
+    surrendered: false
+  }];
+
+  const actions = game.availableActions();
+  assert.equal(actions.hit, false);
+  assert.equal(actions.stand, false);
+  assert.equal(actions.double, false);
+  assert.equal(actions.split, false);
+});
+
 test("Hi-Lo values are exposed for low, neutral and high cards", () => {
   assert.equal(COUNT_SYSTEMS.hiLo.values["2"], 1);
   assert.equal(COUNT_SYSTEMS.hiLo.values["8"], 0);

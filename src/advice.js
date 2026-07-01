@@ -267,6 +267,9 @@ export function recommendNextAction(state) {
   if (!hand || !dealerValue) {
     return makeAdvice("none", "Information insuffisante pour proposer une action.", "Timing");
   }
+  if (hand.score.total === 21) {
+    return makeAdvice("wait", "21 atteint: la main se termine automatiquement, aucune action joueur n'est necessaire.", "Timing");
+  }
 
   const pair = pairValue(hand);
   let advice = pair && state.actions.split ? pairAdvice(pair, dealerValue) : null;

@@ -270,7 +270,7 @@ function outcomeClass(hand) {
   if (hand.result.includes("Push")) {
     return "hand-push";
   }
-  if (["Blackjack", "Gagne", "Dealer bust"].includes(hand.result)) {
+  if (["Blackjack", "Gagne", "Dealer bust", "21 gagne"].includes(hand.result)) {
     return "hand-win";
   }
   return "hand-loss";
@@ -491,20 +491,23 @@ function computeRoundNet(state) {
 function roundOutcome(state) {
   const roundNet = computeRoundNet(state);
   const hasBlackjack = state.hands.some((hand) => hand.result === "Blackjack");
-  const playerWins = state.hands.filter((hand) => ["Blackjack", "Gagne", "Dealer bust"].includes(hand.result)).length;
+  const hasAutoTwentyOne = state.hands.some((hand) => hand.result.startsWith("21"));
+  const playerWins = state.hands.filter((hand) => ["Blackjack", "Gagne", "Dealer bust", "21 gagne"].includes(hand.result)).length;
   const dealerWins = state.hands.filter((hand) => ["Bust", "Perdu", "Dealer blackjack", "Abandon"].includes(hand.result)).length;
-  const pushes = state.hands.filter((hand) => hand.result.includes("Push")).length;
+  const pushes = state.hands.filter((hand) => hand.result.includes("Push") || hand.result === "21 push").length;
   const resultClass = roundNet > 0 ? "win" : roundNet < 0 ? "loss" : "push";
   const amountLabel = roundNet === 0 ? "0" : `${roundNet > 0 ? "+" : ""}${formatAmount(roundNet)}`;
 
   let title = "Egalite";
   let kicker = "Push";
   if (roundNet > 0) {
-    title = hasBlackjack ? "Blackjack joueur" : "Joueur gagne";
+    title = hasBlackjack ? "Blackjack joueur" : hasAutoTwentyOne ? "21 joueur" : "Joueur gagne";
     kicker = "Victoire";
   } else if (roundNet < 0) {
     title = "Dealer gagne";
     kicker = "Defaite";
+  } else if (hasAutoTwentyOne) {
+    title = "21 push";
   }
 
   const details = [];
@@ -516,6 +519,9 @@ function roundOutcome(state) {
   }
   if (pushes) {
     details.push(`${pushes} push`);
+  }
+  if (hasAutoTwentyOne && !hasBlackjack) {
+    details.push("21 atteint automatiquement");
   }
 
   return {

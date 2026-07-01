@@ -568,6 +568,17 @@ export class BlackjackGame {
       };
     }
 
+    const activeScore = scoreHand(hand.cards);
+    if (activeScore.total >= 21) {
+      return {
+        hit: false,
+        stand: false,
+        double: false,
+        split: false,
+        surrender: false
+      };
+    }
+
     const canDouble = hand.cards.length === 2
       && this.bankroll >= hand.bet
       && (hand.source !== "split" || this.settings.doubleAfterSplit)
@@ -598,6 +609,22 @@ export class BlackjackGame {
     return first.rank === second.rank || getCardValue(first.rank) === getCardValue(second.rank);
   }
 
+  lockTwentyOne(hand = this.activeHand()) {
+    if (!hand) {
+      return false;
+    }
+
+    const score = scoreHand(hand.cards);
+    if (score.total !== 21 || score.blackjack) {
+      return false;
+    }
+
+    hand.locked = true;
+    hand.result = "21";
+    this.pushMessage(`21 ! Main ${this.activeHandIndex + 1} terminee automatiquement.`);
+    return true;
+  }
+
   hit() {
     const hand = this.activeHand();
     if (!this.availableActions().hit) {
@@ -610,6 +637,8 @@ export class BlackjackGame {
       hand.locked = true;
       hand.result = "Bust";
       this.pushMessage(`Main ${this.activeHandIndex + 1}: bust.`);
+      this.advanceHand();
+    } else if (this.lockTwentyOne(hand)) {
       this.advanceHand();
     }
   }
@@ -634,7 +663,13 @@ export class BlackjackGame {
     hand.doubled = true;
     hand.cards.push(this.dealCard());
     hand.locked = true;
-    this.pushMessage(`Main ${this.activeHandIndex + 1}: double.`);
+    const score = scoreHand(hand.cards);
+    if (score.total === 21 && !score.blackjack) {
+      hand.result = "21";
+      this.pushMessage(`21 ! Main ${this.activeHandIndex + 1}: double termine automatiquement.`);
+    } else {
+      this.pushMessage(`Main ${this.activeHandIndex + 1}: double.`);
+    }
     this.advanceHand();
   }
 
@@ -659,8 +694,24 @@ export class BlackjackGame {
       secondHand.locked = true;
     }
 
+    const lockedByTwentyOne = [firstHand, secondHand].filter((splitHand) => {
+      const score = scoreHand(splitHand.cards);
+      if (score.total === 21) {
+        splitHand.locked = true;
+        splitHand.result = "21";
+        return true;
+      }
+      return false;
+    }).length;
+
     this.hands.splice(this.activeHandIndex, 1, firstHand, secondHand);
-    this.pushMessage(firstHand.splitAces ? "Split des As: une carte par main." : "Main splittee.");
+    if (firstHand.splitAces) {
+      this.pushMessage("Split des As: une carte par main.");
+    } else if (lockedByTwentyOne) {
+      this.pushMessage(`21 ! ${lockedByTwentyOne} main${lockedByTwentyOne > 1 ? "s" : ""} terminee${lockedByTwentyOne > 1 ? "s" : ""} automatiquement.`);
+    } else {
+      this.pushMessage("Main splittee.");
+    }
 
     if (firstHand.locked) {
       this.advanceHand();
@@ -749,7 +800,7 @@ export class BlackjackGame {
     const payout = normalizeAmount(hand.bet * 2);
     this.bankroll = normalizeAmount(this.bankroll + payout);
     hand.settled = true;
-    hand.result = result;
+    hand.result = hand.result === "21" ? "21 gagne" : result;
     hand.payout = payout;
     this.stats.wins += 1;
     this.stats.net = normalizeAmount(this.stats.net + hand.bet);
@@ -766,7 +817,7 @@ export class BlackjackGame {
   payPush(hand, result) {
     this.bankroll = normalizeAmount(this.bankroll + hand.bet);
     hand.settled = true;
-    hand.result = result;
+    hand.result = hand.result === "21" ? "21 push" : result;
     hand.payout = hand.bet;
     this.stats.pushes += 1;
   }
