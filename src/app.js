@@ -8,6 +8,9 @@ import {
   mostLikelyNextCard,
   recommendNextAction
 } from "./advice.js";
+import {
+  guideForCountSystem
+} from "./counting-info.js";
 
 const game = new BlackjackGame();
 
@@ -76,6 +79,7 @@ const elements = {
   newShoeButton: document.querySelector("#newShoeButton"),
   resetSessionButton: document.querySelector("#resetSessionButton"),
   messageLog: document.querySelector("#messageLog"),
+  countingGuide: document.querySelector("#countingGuide"),
   learnTabs: [...document.querySelectorAll(".learn-tab")],
   learnPanels: [...document.querySelectorAll(".learn-tab-panel")]
 };
@@ -420,6 +424,49 @@ function renderTraining(state) {
   renderRankBars(training, state.settings.decks);
 }
 
+function listBlock(title, items) {
+  const block = createElement("div", "guide-block");
+  block.append(createElement("h4", "", title));
+  const list = createElement("ul");
+  for (const item of items) {
+    list.append(createElement("li", "", item));
+  }
+  block.append(list);
+  return block;
+}
+
+function renderCountingGuide(systemId) {
+  const guide = guideForCountSystem(systemId);
+  elements.countingGuide.replaceChildren();
+
+  const hero = createElement("div", "guide-hero");
+  const title = createElement("div");
+  title.append(createElement("span", "guide-kicker", "Methode selectionnee"));
+  title.append(createElement("h3", "", guide.title));
+  const tags = createElement("div", "guide-tags");
+  tags.append(createElement("span", "", guide.level));
+  tags.append(createElement("span", "", guide.balance));
+  hero.append(title, tags, createElement("p", "", guide.summary));
+
+  const values = createElement("div", "value-map");
+  values.append(createElement("h4", "", "Valeurs a memoriser"));
+  for (const [cards, value] of guide.values) {
+    const row = createElement("div", "value-row");
+    row.append(createElement("span", "", cards));
+    row.append(createElement("strong", "", value));
+    values.append(row);
+  }
+
+  const grid = createElement("div", "guide-grid");
+  grid.append(
+    listBlock("Comment compter", guide.howTo),
+    listBlock("Quand l'utiliser", guide.useCases),
+    listBlock("Pieges a eviter", guide.traps)
+  );
+
+  elements.countingGuide.append(hero, values, grid);
+}
+
 function renderShoeState(state, previous) {
   const totalCards = state.settings.decks * 52;
   const remaining = state.training.cardsRemaining;
@@ -745,6 +792,7 @@ function render() {
   renderHands(state);
   renderTableResult(state);
   renderTraining(state);
+  renderCountingGuide(state.settings.countingSystem);
   renderShoeState(state, previousState);
   renderMessages(state.messages);
   renderControls(state);
